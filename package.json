@@ -1,0 +1,23 @@
+{
+  "name": "crisp-conversation-export",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Export Crisp conversations and messages to JSONL",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "export": "node src/cli/export-conversations.js --out ./export",
+    "export:resume": "node src/cli/export-conversations.js --out ./export --resume",
+    "export:30d": "node src/cli/export-conversations.js --days 30 --out ./export/last-30d",
+    "export:30d:resume": "node src/cli/export-conversations.js --days 30 --out ./export/last-30d --resume",
+    "remains": "node src/cli/export-remaining.js",
+    "forecast":"node src/cli/export-conversations.js --forecast --out ./export",
+    "forecast:30d": "node src/cli/export-conversations.js --forecast --days 30 --out ./export/last-30d"
+  },
+  "dependencies": {
+    "crisp-api": "^10.11.0",
+    "dotenv": "^16.4.5"
+  }
+}
