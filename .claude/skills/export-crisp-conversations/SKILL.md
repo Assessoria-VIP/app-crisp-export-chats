@@ -34,9 +34,9 @@ npm run export:30d
 npm run export:30d:resume
 ```
 
-O checkpoint congela a janela. Não misturar com `export/` do dump completo.
+O checkpoint congela a janela. Não misturar com `export/completed-exports/full-export/` do dump completo.
 
-4. Dump completo (também antiga → nova; pasta `export/`):
+4. Dump completo (também antiga → nova; pasta `export/completed-exports/full-export/`):
 
 ```bash
 npm run forecast
@@ -46,14 +46,14 @@ npm run export:resume
 
 Opções extras: `--days N`, `--include-empty`, `--include-events`, `--date-start ISO`, `--date-end ISO`, `--max-conversations N`, `--sample N`, `--daily-limit N`.
 
-5. Export remanescente (pós-corte), depois do dump completo. Há um único export ativo em `export/app-crisp-export-chats/`:
+5. Export remanescente (pós-corte), depois do dump completo. Há um único export ativo em `export/active-export-chats/`. A referência obrigatória é `export/completed-exports/full-export/conversations.jsonl`:
 
 ```bash
-npm run remains -- --new <corte ISO>   # inicia (arquiva o ativo anterior em export/app-crisp-exported-chats/)
+npm run remains -- --new <corte ISO>   # inicia (arquiva o ativo anterior em export/completed-exports/archived-export-chats/)
 npm run remains                        # continua o ativo; o corte vem do checkpoint
 ```
 
-Nunca usar `--new` só para continuar: ele arquiva o export ativo. Se `export/app-crisp-exported-chats/` já existir, o `--new` aborta; não apagar essa pasta sem confirmação do usuário.
+Nunca usar `--new` só para continuar: ele arquiva o export ativo. Se `export/completed-exports/archived-export-chats/` já existir, o `--new` aborta; não apagar essa pasta sem confirmação do usuário.
 
 6. Ao terminar, resumir `manifest.json` (contagens, `status`, erros). Não colar conversas inteiras no chat.
 

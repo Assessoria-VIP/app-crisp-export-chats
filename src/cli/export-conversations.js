@@ -31,7 +31,7 @@ function parseCli(argv) {
   const { values } = parseArgs({
     args: argv,
     options: {
-      out: { type: "string", default: "./export" },
+      out: { type: "string", default: "./export/completed-exports/full-export" },
       resume: { type: "boolean", default: false },
       "include-empty": { type: "boolean", default: false },
       "include-events": { type: "boolean", default: false },

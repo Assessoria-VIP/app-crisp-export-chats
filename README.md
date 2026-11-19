@@ -62,7 +62,7 @@ O dump **completo** e o de `--days` listam todas as páginas (a API devolve a ma
 Opções:
 
 ```bash
-node src/cli/export-conversations.js --out ./export \
+node src/cli/export-conversations.js --out ./export/completed-exports/full-export \
   [--forecast] \
   [--days 30] \
   [--sample 8] \
@@ -77,7 +77,7 @@ node src/cli/export-conversations.js --out ./export \
 
 Não combine `--days` com `--date-start` / `--date-end`. Sem `--out`, `--days N` usa `./export/last-Nd`.
 
-Saída em `--out` (default `./export`):
+Saída em `--out` (default `./export/completed-exports/full-export`):
 
 - `conversations.jsonl` — uma conversa por linha
 - `checkpoint.json` — progresso para `--resume` (cota diária)
@@ -92,18 +92,21 @@ Não use `POST .../transcript` em massa: isso envia e-mail, não devolve o hist�
 
 ## Exportação remanescente (pós-corte)
 
-Depois de uma exportação completa (em `./export`), pega as conversas **criadas ou atualizadas** depois de um corte, sem reprocessar o que já foi exportado.
+Depois de uma exportação completa (em `./export/completed-exports/full-export`), pega as conversas **criadas ou atualizadas** depois de um corte, sem reprocessar o que já foi exportado.
 
 ### Onde os dados ficam
 
-A exportação completa em `./export` **não é alterada**: ela só é lida (`--known-dir ./export`) para saber o que já foi exportado. O remanescente tem **um único export ativo**, sempre no mesmo caminho:
+```
+export/
+  active-export-chats/              export remanescente ATIVO: toda execução de `npm run remains` grava ou continua aqui
+  completed-exports/                exportações encerradas
+    full-export/                    exportação completa (`npm run export`) — referência do remanescente
+    archived-export-chats/          export remanescente anterior, arquivado quando um novo é iniciado com `--new`
+```
 
-| Pasta | Papel |
-| --- | --- |
-| `export/app-crisp-export-chats/` | export remanescente **ativo**: toda execução de `npm run remains` grava ou continua aqui |
-| `export/app-crisp-exported-chats/` | export ativo anterior, **arquivado** quando um novo é iniciado com `--new` |
+A exportação completa **não é alterada** pelo remanescente: o `conversations.jsonl` dela só é lido (`--known-dir ./export/completed-exports/full-export`) para montar um índice `session_id` → timestamp da última mensagem. Esse índice decide o que é conversa nova (exportada inteira) e o que é conhecida (só o delta). **Ele é obrigatório:** sem esse arquivo o `npm run remains` aborta antes de mover ou gravar qualquer coisa. Um arquivo parcial faria toda conversa ausente ser reexportada inteira. O remanescente tem **um único export ativo**, sempre no mesmo caminho.
 
-Os arquivos de cada pasta estão descritos em [Dicionário dos arquivos gerados](#dicionário-dos-arquivos-gerados). Os dois `.jsonl` crescem por append a cada execução. Consolidado final: `./export/conversations.jsonl` + `conversations.jsonl` do export ativo + mensagens de `conversations-updated.jsonl` acrescentadas à conversa original (deduplicando por `fingerprint`).
+Os arquivos de cada pasta estão descritos em [Dicionário dos arquivos gerados](#dicionário-dos-arquivos-gerados). Os dois `.jsonl` crescem por append a cada execução. Consolidado final: `export/completed-exports/full-export/conversations.jsonl` + `conversations.jsonl` do export ativo + mensagens de `conversations-updated.jsonl` acrescentadas à conversa original (deduplicando por `fingerprint`).
 
 ### Comandos
 
@@ -112,7 +115,7 @@ npm run remains -- --new <corte ISO>   # inicia um novo export ativo
 npm run remains                        # continua o export ativo (quantas vezes a cota exigir)
 ```
 
-- `--new <corte ISO>`: data em UTC (ISO 8601) a partir da qual listar conversas por `updated_at`. Cobre conversas novas e antigas reabertas. O corte fica gravado no `checkpoint.json` do export ativo, e as execuções seguintes usam esse valor. Se já existir um export ativo, ele é movido para `export/app-crisp-exported-chats/` antes de começar. Se essa pasta de arquivo já existir, o comando aborta sem alterar nada: mova ou apague o arquivo anterior primeiro.
+- `--new <corte ISO>`: data em UTC (ISO 8601) a partir da qual listar conversas por `updated_at`. Cobre conversas novas e antigas reabertas. O corte fica gravado no `checkpoint.json` do export ativo, e as execuções seguintes usam esse valor. Se já existir um export ativo, ele é movido para `export/completed-exports/archived-export-chats/` antes de começar. Se essa pasta de arquivo já existir, o comando aborta sem alterar nada: mova ou apague o arquivo anterior primeiro.
 - Sem argumentos: continua o export ativo. Pula as conversas já processadas, continua o append nos mesmos arquivos e lista até o momento da execução, então conversas atualizadas entre as execuções também entram. Se não houver export ativo, o comando avisa e pede `--new`.
 - Um corte passado sem `--new` dá erro, porque o export ativo sempre usa o corte do checkpoint. `--resume`, `--out`, `--known-dir` e `--date-start` são controlados pelo wrapper e também são recusados. Outras opções (ex.: `--max-conversations`, `--daily-limit`, `--include-events`) são repassadas ao CLI.
 
@@ -120,19 +123,19 @@ Por baixo, o wrapper ([src/cli/export-remaining.js](src/cli/export-remaining.js)
 
 ```bash
 node src/cli/export-conversations.js \
-  --out ./export/app-crisp-export-chats \
-  --known-dir ./export \
+  --out ./export/active-export-chats \
+  --known-dir ./export/completed-exports/full-export \
   [--date-start <corte ISO>   # só com --new]
   [--resume                   # sem --new]
 ```
 
 **Como escolher o corte:** use o **início** da exportação completa, não o fim. Ela durou vários dias (por causa da cota), e uma conversa exportada no começo e atualizada no meio só é capturada com um corte anterior a essa atualização. Na dúvida, recue um pouco (ex.: meia-noite do dia de início). Sobreposição não gera duplicata: conversas já conhecidas só buscam o delta e, sem mensagens novas, não gravam patch. O custo é só mais chamadas à API.
 
-O fim da exportação completa está em `exported_at` do `./export/manifest.json`. O início pode ser estimado pela data de **criação** do `./export/checkpoint.json` (a de modificação não serve, porque ele é regravado a cada conversa):
+O fim da exportação completa está em `exported_at` do `export/completed-exports/full-export/manifest.json`. O início pode ser estimado pela data de **criação** do `export/completed-exports/full-export/checkpoint.json` (a de modificação não serve, porque ele é regravado a cada conversa):
 
 ```bash
-stat -f %SB export/checkpoint.json   # macOS
-stat -c %w export/checkpoint.json    # Linux (mostra "-" se o filesystem não registra criação)
+stat -f %SB export/completed-exports/full-export/checkpoint.json   # macOS
+stat -c %w export/completed-exports/full-export/checkpoint.json    # Linux (mostra "-" se o filesystem não registra criação)
 ```
 
 ### Passo a passo (exemplo)
@@ -157,14 +160,14 @@ Limitação conhecida (a mesma da exportação completa): uma conversa já proce
 
 ## Dicionário dos arquivos gerados
 
-Valem para a exportação completa (`export/`, `export/last-30d/`) e para o export remanescente (`export/app-crisp-export-chats/`), com as diferenças indicadas.
+Valem para a exportação completa (`export/completed-exports/full-export/`, `export/last-30d/`) e para o export remanescente (`export/active-export-chats/`), com as diferenças indicadas.
 
 ### `conversations.jsonl`
 
 Uma conversa por linha (JSON). É o dado principal da exportação.
 
 - **Exportação completa:** todas as conversas da janela, em ordem crescente de `created_at`.
-- **Remanescente:** só as conversas **novas** (que não existem em `./export`). Também inclui, completas, as conversas conhecidas que não tinham nenhuma mensagem em `./export` (sem base para delta). Nesse caso, a linha nova **substitui** a do `./export` com o mesmo `session_id`.
+- **Remanescente:** só as conversas **novas** (que não existem na exportação completa). Também inclui, completas, as conversas conhecidas que não tinham nenhuma mensagem na exportação completa (sem base para delta). Nesse caso, a linha nova **substitui** a da exportação completa com o mesmo `session_id`.
 
 | Campo | Conteúdo |
 | --- | --- |
@@ -180,14 +183,14 @@ Uma conversa por linha (JSON). É o dado principal da exportação.
 
 ### `conversations-updated.jsonl`
 
-Só no remanescente. Um **patch** por linha, para cada conversa que já estava em `./export` e recebeu mensagens novas:
+Só no remanescente. Um **patch** por linha, para cada conversa que já estava na exportação completa e recebeu mensagens novas:
 
 ```json
 { "session_id": "...", "since_timestamp": 1758500000000, "conversation": { "...": "mesmos campos de conversations.jsonl, sem messages" }, "messages": [ "só as mensagens novas" ] }
 ```
 
-- `since_timestamp`: timestamp da última mensagem que a conversa tinha em `./export`. O delta são as mensagens posteriores a ele.
-- `conversation`: estado atual da conversa (`state`, `assigned`, `contact`, `updated_at`…). Prevalece sobre o do `./export`.
+- `since_timestamp`: timestamp da última mensagem que a conversa tinha na exportação completa. O delta são as mensagens posteriores a ele.
+- `conversation`: estado atual da conversa (`state`, `assigned`, `contact`, `updated_at`…). Prevalece sobre o da exportação completa.
 - Para consolidar: localizar a conversa pelo `session_id` e acrescentar `messages`, ignorando os `fingerprint` que já existirem.
 - Conversas conhecidas sem mensagens novas não geram linha.
 

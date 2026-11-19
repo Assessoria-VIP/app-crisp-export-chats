@@ -13,7 +13,7 @@ CLI Node.js operacional que exportou o histórico de conversas do Crisp para JSO
 | --- | --- | --- |
 | `npm test` | roda `test/` | não |
 | `npm run forecast` / `forecast:30d` | estima volume e dias de cota | sim (poucas requests) |
-| `npm run export` / `export:resume` | dump completo em `export/` | sim (dias de cota) |
+| `npm run export` / `export:resume` | dump completo em `export/completed-exports/full-export/` | sim (dias de cota) |
 | `npm run remains` | continua o export remanescente ativo | sim |
 | `npm run remains -- --new <corte ISO>` | arquiva o export ativo e começa outro | sim |
 

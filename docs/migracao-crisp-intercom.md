@@ -157,9 +157,9 @@ Referência da API: [https://docs.crisp.chat/references/rest-api/v1/](https://do
 
 ## 9. Fase incremental: conversas remanescentes
 
-A exportação completa (seção 8) fica desatualizada assim que novas conversas chegam ou conversas antigas são reabertas no Crisp. Para cobrir o período entre o corte da exportação completa e o cutover real para a Intercom, o CLI suporta uma segunda fase, com `--known-dir` apontando para a pasta da exportação completa (ver seção "Exportação remanescente (pós-corte)" no [README.md](../README.md)).
+A exportação completa (seção 8) fica desatualizada assim que novas conversas chegam ou conversas antigas são reabertas no Crisp. Para cobrir o período entre o corte da exportação completa e o cutover real para a Intercom, o CLI suporta uma segunda fase, com `--known-dir` apontando para a pasta da exportação completa (`export/completed-exports/full-export/`) (ver seção "Exportação remanescente (pós-corte)" no [README.md](../README.md)).
 
-Essa fase produz **dois arquivos**, em vez de um só, numa pasta separada e fixa, `export/app-crisp-export-chats/` (o export remanescente ativo, continuado a cada `npm run remains`; ao iniciar outro com `--new`, o anterior é arquivado em `export/app-crisp-exported-chats/`):
+Essa fase produz **dois arquivos**, em vez de um só, numa pasta separada e fixa, `export/active-export-chats/` (o export remanescente ativo, continuado a cada `npm run remains`; ao iniciar outro com `--new`, o anterior é arquivado em `export/completed-exports/archived-export-chats/`):
 
 - `conversations.jsonl` — conversas inteiramente novas desde o corte. Mesmo schema da exportação completa; pode ser concatenado direto ao `conversations.jsonl` original.
 - `conversations-updated.jsonl` — **patches**, um por conversa já existente que recebeu mensagens novas: `{ session_id, since_timestamp, conversation, messages: [só as mensagens novas] }`. Quem for inserir isso na Intercom precisa tratar esse arquivo à parte: localizar a conversa já importada pelo `session_id` e fazer o append de `messages`, deduplicando por `fingerprint` caso a conversa já tenha alguma dessas mensagens.

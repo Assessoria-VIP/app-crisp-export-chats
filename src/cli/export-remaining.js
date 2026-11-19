@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 // Wrapper for the post-cutoff (remaining) export.
 //
-// There is a single active export at ./export/app-crisp-export-chats:
+// There is a single active export at ./export/active-export-chats:
 //   npm run remains                       -> continue the active export (resume is implicit;
 //                                            the cutoff comes from its checkpoint)
 //   npm run remains -- --new <cutoff ISO> -> archive the active export to
-//                                            ./export/app-crisp-exported-chats and start a new one
+//                                            ./export/completed-exports/archived-export-chats
+//                                            and start a new one
+// The full export (./export/completed-exports/full-export/conversations.jsonl) is the
+// reference that tells new conversations apart from known ones; it is required.
 // Extra flags (e.g. --max-conversations, --daily-limit) are passed through.
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const EXPORT_ROOT = "./export";
-const KNOWN_DIR = EXPORT_ROOT;
-const ACTIVE_DIR = "app-crisp-export-chats";
-const ARCHIVE_DIR = "app-crisp-exported-chats";
+const ACTIVE_DIR = "active-export-chats";
+const COMPLETED_DIR = "completed-exports";
+const FULL_EXPORT_DIR = path.join(COMPLETED_DIR, "full-export");
+const ARCHIVE_DIR = path.join(COMPLETED_DIR, "archived-export-chats");
+const KNOWN_DIR = path.join(EXPORT_ROOT, FULL_EXPORT_DIR);
 
 // Flags the wrapper controls; accepting them from the user would conflict.
 const RESERVED_FLAGS = ["--resume", "--out", "--known-dir", "--date-start"];
@@ -74,7 +79,17 @@ function prepareRun({ mode, cutoff, passthrough = [] }, { root = EXPORT_ROOT, kn
   const activeDir = path.join(root, ACTIVE_DIR);
   const archiveDir = path.join(root, ARCHIVE_DIR);
   const checkpointPath = path.join(activeDir, "checkpoint.json");
+  const knownJsonlPath = path.join(knownDir, "conversations.jsonl");
   const baseArgs = ["--out", activeDir, "--known-dir", knownDir];
+
+  // Checked before anything is moved: without the reference every listed
+  // conversation would be treated as new, and the export would fail anyway.
+  if (!fs.existsSync(knownJsonlPath)) {
+    throw new UsageError(
+      `missing full-export reference ${knownJsonlPath} ` +
+        "(conversations.jsonl of the full export; nothing was changed)"
+    );
+  }
 
   if (mode === "resume") {
     if (!fs.existsSync(checkpointPath)) {
@@ -100,6 +115,7 @@ function prepareRun({ mode, cutoff, passthrough = [] }, { root = EXPORT_ROOT, kn
 
   let archived = false;
   if (fs.existsSync(activeDir)) {
+    fs.mkdirSync(path.dirname(archiveDir), { recursive: true });
     fs.renameSync(activeDir, archiveDir);
     archived = true;
   }
@@ -140,6 +156,7 @@ if (require.main === module) {
 module.exports = {
   ACTIVE_DIR,
   ARCHIVE_DIR,
+  FULL_EXPORT_DIR,
   UsageError,
   parseRemainsArgs,
   prepareRun,

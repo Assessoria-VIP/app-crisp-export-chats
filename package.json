@@ -8,12 +8,12 @@
   },
   "scripts": {
     "test": "node --test test/",
-    "export": "node src/cli/export-conversations.js --out ./export",
-    "export:resume": "node src/cli/export-conversations.js --out ./export --resume",
+    "export": "node src/cli/export-conversations.js --out ./export/completed-exports/full-export",
+    "export:resume": "node src/cli/export-conversations.js --out ./export/completed-exports/full-export --resume",
     "export:30d": "node src/cli/export-conversations.js --days 30 --out ./export/last-30d",
     "export:30d:resume": "node src/cli/export-conversations.js --days 30 --out ./export/last-30d --resume",
     "remains": "node src/cli/export-remaining.js",
-    "forecast":"node src/cli/export-conversations.js --forecast --out ./export",
+    "forecast":"node src/cli/export-conversations.js --forecast --out ./export/completed-exports/full-export",
     "forecast:30d": "node src/cli/export-conversations.js --forecast --days 30 --out ./export/last-30d"
   },
   "dependencies": {
