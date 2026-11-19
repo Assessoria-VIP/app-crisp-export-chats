@@ -1,5 +1,15 @@
 # Exportação de conversas do Crisp
 
+## Antes de tudo: descompacte o `export.zip`
+
+Os arquivos já exportados estão versionados em `export.zip`, na raiz do repositório. Descompacte-o na raiz **antes de rodar qualquer comando**: o export remanescente depende de `export/completed-exports/full-export/conversations.jsonl` como referência (`--known-dir`), e o `--resume` depende dos `checkpoint.json`.
+
+```bash
+unzip export.zip -x '__MACOSX/*'
+```
+
+Isso cria a pasta `export/` (ignorada pelo git). Ela contém dados reais de clientes: veja [.claude/rules/export-data.md](.claude/rules/export-data.md).
+
 CLI Node.js que extrai conversas e mensagens da API REST do Crisp para JSONL. A API não oferece dump em lote: a extração pagina listagens e, por conversa, busca meta e histórico de mensagens.
 
 A tarefa de migração para a Intercom (motivação, processo, limitações e prazo) está em [docs/migracao-crisp-intercom.md](docs/migracao-crisp-intercom.md).
